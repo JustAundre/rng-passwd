@@ -8,8 +8,9 @@
 # Environment Setup
 #
 # Source library commands
-[[ -d "../lib/" ]] || exit 69
-for function in "$../lib/"*; do
+cd "$(dirname "${0}")" || exit 1
+[[ -d "./lib" ]] || exit 2
+for function in "./lib/"*; do
 	source "${function}"
 done
 #
@@ -27,15 +28,15 @@ word_pull() {
 	local word kill
 	while [[
 		${#word} -lt ${min} ||
-		${#word} -gt ${max} ]] \
-		; do
+		${#word} -gt ${max}
+	]]; do
 		# Verbose output: print scrapped words
 		[[ -n ${verbose} && -n ${word} ]] &&
-			log w "Dropped word \"${word}\" because it did not meet complexity requirements."
+			log w "Dropped ${word@Q} because it did not meet complexity requirements."
 		#
 		# Error out if failed to find a word matching set constraints for more than 250 cycles
 		if [[ ${kill} -gt 250 ]]; then
-			log e 'E: Script took too long to find a word within constraints, stopping to avoid system stress...'
+			log e "${0@Q}: Unable match a suitable word within 250 cycles."
 			return 4
 		fi
 		#
@@ -43,7 +44,7 @@ word_pull() {
 		# ...& increase cycle count
 		word="$(shuf -n1 "${dict_location}")"
 		if [[ -z ${word} ]]; then
-			log e 'Failed to fetch word from the dictionary.'
+			log e "${0@Q}: failed to fetch word from the dictionary."
 			return 2
 		fi
 		((kill++))
@@ -64,7 +65,7 @@ while getopts 's:m:M:c:a:p:v' arg; do
 	p) pattern="${OPTARG}" ;;
 	v) verbose=y ;;
 	*)
-		log e "Invalid argument \"${arg}\""
+		log e "${0@Q}: invalid option: ${arg@Q}"
 		exit 2
 		;;
 	esac
@@ -155,15 +156,15 @@ fi
 # If no dictionary is present...
 if [[
 	! -f ${dict_location} &&
-	! -f en_US-dict.txt ]] \
-	; then
+	! -f en_US-dict.txt ]];
+then
 	# Attempt to download one (with consent)...
-	echo "W: A pre-existing dictionary couldn't be located in \"${dict_location}\"."
+	echo "W: A pre-existing dictionary couldn't be located in ${dict_location@Q}."
 	dict_location='en_US-dict.txt'
 	#
 	# if there's a terminal.
 	if [[ -t 0 ]]; then
-		read -erp "Download a dictionary from '${dict_url}' to '$(pwd)/${dict_location}? (aprox. ~76kb of characters, 10k words) [y/N]: '" download >&2
+		read -erp "Download a dictionary from ${dict_url@Q} to '$(pwd)/${dict_location}'? (aprox. ~76kb of characters, 10k words) [y/N]: " download >&2
 	else
 		log e <<-'EOF'
 			As this is non-interactive,
@@ -175,19 +176,12 @@ if [[
 	#
 	# Start the download (if consented)
 	if [[ ${download} =~ ^[yY] ]]; then
-		echo 'i: Downloading...' >&2
+		echo 'i: Downloading...' >&"${ui}"
 		#
 		# Will timeout if download takes too long.
 		if ! curl -s "${dict_url}" --connect-timeout 5 >"${dict_location}"; then
-			# Alert user of the error
-			log e <<-EOF
-				Failed to download dictionary; the curl command exited with code "$?".
-				    deleting possible remnant file(s) & quitting...
-			EOF
-			#
-			# Remove remnant empty file
-			[[ -f ${dict_location} ]] &&
-				rm -v "${dict_location}"
+			log e "${0@Q}: Failed to download dictionary; the curl command exited with code ${?@Q}"
+			[[ -f ${dict_location} ]] && rm -v "${dict_location}"
 			exit 1
 		fi
 	fi
@@ -200,7 +194,7 @@ fi
 #
 # Generate Password(s)
 #
-echo 'Generated password(s):' >&2
+echo 'Generated password(s):' >&"${ui}"
 for ((x = 0; x < password_amount; x++)); do
 	unset result
 	for ((y = 0; y < ${#pattern}; y++)); do
@@ -208,7 +202,7 @@ for ((x = 0; x < password_amount; x++)); do
 		case "${char}" in
 		w | W)
 			# Parse w/W into a random word
-			word="$(word_pull)" || exit "$?"
+			word="$(word_pull)" || exit "${?}"
 			result+="${word}"
 			;;
 		n | N)
@@ -221,7 +215,7 @@ for ((x = 0; x < password_amount; x++)); do
 			;;
 		*)
 			# More input validation
-			log w "Unrecognized character \"${char}\" in pattern at line 1, column ${y}. Ignoring..."
+			log w "Ignored unrecognized character ${char@Q} in pattern at line 1, column ${y}."
 			;;
 		esac
 	done
