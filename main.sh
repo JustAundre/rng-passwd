@@ -16,7 +16,7 @@ for function in ./bash-lib/*.sh; do
 done
 #
 # Filename/path of dictionary file & URL to fallback dictionary.
-mapfile -td '' dict_locations < <(find /usr/share/dict -type f,l -readable -print0)
+mapfile -t -d '' dict_locations < <(find /usr/share/dict -type f,l -readable -print0)
 dict_location="${dict_locations[0]}"
 dict_url='https://www.mit.edu/~ecprice/wordlist.10000'
 #
@@ -43,7 +43,7 @@ word_pull() {
 		#
 		# Shuffle the dictionary, pull 1 word...
 		# ...& increase cycle count
-		word="$(shuf -n1 "${dict_location}")"
+		word="$(shuf -n 1 "${dict_location}")"
 		if [[ -z ${word} ]]; then
 			log e "${0@Q}: failed to fetch word from the dictionary."
 			return 2
@@ -85,11 +85,11 @@ done
 # Whether to capitalize the first character of words
 # How many passwords to generate
 # Generation pattern
-[[ -z ${separator} && -t 0 ]] && read -erp 'Enter a separator (Default is -): ' separator >&"${ui}"
-[[ -z ${min} && -t 0 ]] && read -erp 'Minimum word length (Default is 4): ' min >&"${ui}"
-[[ -z ${max} && -t 0 ]] && read -erp 'Max word length (Default is 8): ' max >&"${ui}"
-[[ -z ${capitals} && -t 0 ]] && read -erp 'Capitalize first letters? [Y/n]: ' capitals >&"${ui}"
-[[ -z ${password_amount} && -t 0 ]] && read -erp 'Amount of passwords (Default is 1): ' password_amount >&"${ui}"
+[[ -z ${separator} && -t 0 ]] && read -r -e -p 'Enter a separator (Default is -): ' separator >&"${ui}"
+[[ -z ${min} && -t 0 ]] && read -r -e -p 'Minimum word length (Default is 4): ' min >&"${ui}"
+[[ -z ${max} && -t 0 ]] && read -r -e -p 'Max word length (Default is 8): ' max >&"${ui}"
+[[ -z ${capitals} && -t 0 ]] && read -r -e -p 'Capitalize first letters? [Y/n]: ' capitals >&"${ui}"
+[[ -z ${password_amount} && -t 0 ]] && read -r -e -p 'Amount of passwords (Default is 1): ' password_amount >&"${ui}"
 if [[
 	-z ${pattern} &&
 	-t 0 ]] \
@@ -99,7 +99,7 @@ if [[
 		n = Random number
 		s = Provided separator
 	EOF
-	read -erp 'Enter your generation pattern (Default is "wnswnswn"): ' pattern >&"${ui}"
+	read -r -e -p 'Enter your generation pattern (Default is "wnswnswn"): ' pattern >&"${ui}"
 fi
 
 #
@@ -165,7 +165,7 @@ then
 	#
 	# if there's a terminal.
 	if [[ -t 0 ]]; then
-		read -erp "Download a dictionary from ${dict_url@Q} to '$(pwd)/${dict_location}'? (aprox. ~76kb of characters, 10k words) [y/N]: " download >&2
+		read -r -e -p "Download a dictionary from ${dict_url@Q} to '$(pwd)/${dict_location}'? (aprox. ~76kb of characters, 10k words) [y/N]: " download >&2
 	else
 		log e <<-'EOF'
 			As this is non-interactive,
